@@ -2,6 +2,59 @@
 
 An **event-driven, production-ready AI system** that automatically generates 10+ unique marketing creative variations from your brand logo and product image in under 60 seconds.
 
+## ⚡ Quick Start (Local)
+
+There are two ways to run it locally. Option A is the fastest (uses the built‑in mock API). Option B runs the separate Express backend.
+
+### Option A — Frontend only (mock API)
+
+```bash
+# From repo root
+cd frontend
+npm install
+
+# Create frontend/.env.local (already added by setup)
+# NEXT_PUBLIC_API_URL is not required for mock; route is internal
+npm run dev
+# Open http://localhost:3000
+```
+
+Generate flow: Upload logo + product → click Generate → see 12 mock creatives → Download ZIP.
+
+API used: `POST /api/generate-creatives` (Next.js route at `frontend/app/api/generate-creatives/route.ts`).
+
+### Option B — Full stack (Express backend)
+
+```bash
+# Backend (port 5050)
+cd backend
+npm install
+npm run dev
+# Health: curl http://localhost:5050/api/health
+
+# Frontend
+cd ../frontend
+npm run dev
+# Open http://localhost:3000 (frontend points to NEXT_PUBLIC_API_URL)
+```
+
+Env you may need:
+
+```env
+# frontend/.env.local
+NEXT_PUBLIC_API_URL=http://localhost:5050
+NEXT_PUBLIC_BYPASS_AUTH=true
+
+# backend/.env (already configured in this repo)
+BACKEND_PORT=5050
+JWT_SECRET=change_me
+DATABASE_URL=postgresql://postgres:password@localhost:3232/ai_creative_studio
+```
+
+Troubleshooting:
+- If port 5000 is busy, this repo uses 5050 for backend.
+- If you get 401 on `/api/generate`, ensure backend auth is disabled in dev or use the mock route `/api/generate-creatives`.
+
 ![Header Image](/placeholder.svg?height=400&width=1200&query=ai%20creative%20studio%20header)
 
 ## 🎯 The Problem
@@ -137,7 +190,7 @@ VERCEL_BLOB_READ_WRITE_TOKEN=...  # For image storage
 
 ### Generate Creatives
 
-**POST** `/api/generate-creatives`
+**POST** `/api/generate-creatives` (implemented in frontend for local mock)
 
 **Request:**
 \`\`\`json
