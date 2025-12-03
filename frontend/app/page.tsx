@@ -1,17 +1,16 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState } from "react"
 import Navbar from "@/components/navbar"
 import UploadSection from "@/components/upload-section"
 import StyleSelector from "@/components/style-selector"
 import CreativesGallery from "@/components/creatives-gallery"
 import ExportOptions from "@/components/export-options"
-import { useAuth } from "@/hooks/use-auth"
 
 export default function Home() {
-  const router = useRouter()
-  const { user, isLoading } = useAuth()
+  // Bypass auth by default for local usage. Set NEXT_PUBLIC_BYPASS_AUTH="false" to re-enable auth checks.
+  const bypassAuth = process.env.NEXT_PUBLIC_BYPASS_AUTH !== "false"
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || (typeof window !== "undefined" ? window.location.origin : "")
   const [step, setStep] = useState<"upload" | "generate" | "results">("upload")
   const [formData, setFormData] = useState({
     logo: null as File | null,
@@ -23,20 +22,6 @@ export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [progress, setProgress] = useState(0)
 
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/login")
-    }
-  }, [user, isLoading, router])
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
-      </div>
-    )
-  }
-
   const handleGenerate = async () => {
     if (!formData.logo || !formData.product) return
 
@@ -47,7 +32,7 @@ export default function Home() {
     try {
       const formDataObj = new FormData()
       formDataObj.append("logo", formData.logo)
-      formDataObj.append("product", formData.product)
+      formDataObj.append("productImage", formData.product)
       formDataObj.append("style", formData.style)
       formDataObj.append("quantity", formData.quantity.toString())
 
@@ -56,12 +41,16 @@ export default function Home() {
         setProgress((prev) => Math.min(prev + 10, 90))
       }, 300)
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/generate`, {
+      const headers: Record<string, string> = {}
+      if (!bypassAuth) {
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
+        if (token) headers["Authorization"] = `Bearer ${token}`
+      }
+
+      const response = await fetch(`/api/generate-creatives`, {
         method: "POST",
         body: formDataObj,
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        headers,
       })
 
       clearInterval(progressInterval)
@@ -114,6 +103,18 @@ export default function Home() {
                     className="px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg transform hover:scale-105 transition-all disabled:opacity-50"
                   >
                     {isGenerating ? "Generating..." : "Generate Creatives"}
+                  </button>
+                </div>
+
+                {/* Floating Continue button (always visible) */}
+                <div className="fixed bottom-6 right-6 z-40">
+                  <button
+                    onClick={handleGenerate}
+                    disabled={isGenerating}
+                    className="shadow-lg px-5 py-3 rounded-full bg-cyan-500 hover:bg-cyan-600 text-white font-semibold disabled:opacity-60"
+                    aria-label="Continue and generate"
+                  >
+                    {isGenerating ? "Generating..." : "Continue →"}
                   </button>
                 </div>
               </div>

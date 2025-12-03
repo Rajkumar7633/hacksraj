@@ -29,6 +29,12 @@ export default function UploadSection({ onUpload }: UploadSectionProps) {
         const result = event.target?.result as string
         setPreview(result)
         setFile(file)
+        // If both files are ready, notify parent once
+        const logo = type === "logo" ? file : logoFile
+        const product = type === "product" ? file : productFile
+        if (logo && product) {
+          onUpload(logo, product)
+        }
       }
       reader.readAsDataURL(file)
     }
@@ -48,6 +54,12 @@ export default function UploadSection({ onUpload }: UploadSectionProps) {
         const result = event.target?.result as string
         setPreview(result)
         setFile(file)
+        // If both files are ready, notify parent once
+        const logo = ref === logoRef ? file : logoFile
+        const product = ref === productRef ? file : productFile
+        if (logo && product) {
+          onUpload(logo, product)
+        }
       }
       reader.readAsDataURL(file)
     }
