@@ -13,19 +13,33 @@ interface CreativesGalleryProps {
   creatives: Creative[]
 }
 
-export default function CreativesGallery({ creatives }: CreativesGalleryProps) {
+export default function CreativesGallery({ creatives = [] }: CreativesGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0)
+
+  if (!creatives || creatives.length === 0) {
+    return (
+      <div className="bg-slate-800 border border-slate-700 rounded-lg p-8 text-center">
+        <p className="text-slate-400">No creatives generated yet. Upload some images to get started.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
       {/* Main Preview */}
       <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
         <div className="relative bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg overflow-hidden aspect-video flex items-center justify-center">
-          <img
-            src={creatives[selectedIndex]?.imageUrl || "/placeholder.svg"}
-            alt="Creative preview"
-            className="max-h-full max-w-full rounded"
-          />
+          {creatives[selectedIndex]?.imageUrl ? (
+            <img
+              src={creatives[selectedIndex].imageUrl}
+              alt="Creative preview"
+              className="max-h-full max-w-full rounded"
+            />
+          ) : (
+            <div className="text-slate-500 text-center p-4">
+              <p>No preview available</p>
+            </div>
+          )}
         </div>
 
         <div className="mt-4">

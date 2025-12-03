@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import JSZip from "jszip"
 
 interface Creative {
   id: string
@@ -18,18 +19,33 @@ export default function ExportOptions({ creatives }: ExportOptionsProps) {
   const exportAsZip = async () => {
     setIsExporting(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/download`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      })
+      const zip = new JSZip()
 
-      if (response.ok) {
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = "creatives.zip"
-        a.click()
-      }
+      await Promise.all(
+        creatives.map(async (creative, index) => {
+          const filename = `creative-${index + 1}.png`
+
+          if (creative.imageUrl.startsWith("data:")) {
+            const base64 = creative.imageUrl.split(",")[1]
+            if (base64) {
+              zip.file(filename, base64, { base64: true })
+            }
+          } else {
+            const response = await fetch(creative.imageUrl)
+            const blob = await response.blob()
+            const arrayBuffer = await blob.arrayBuffer()
+            zip.file(filename, arrayBuffer)
+          }
+        }),
+      )
+
+      const zipBlob = await zip.generateAsync({ type: "blob" })
+      const url = window.URL.createObjectURL(zipBlob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = "creatives.zip"
+      a.click()
+      window.URL.revokeObjectURL(url)
     } catch (error) {
       console.error("Export error:", error)
       alert("Failed to export creatives")

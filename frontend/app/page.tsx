@@ -11,6 +11,7 @@ export default function Home() {
   // Bypass auth by default for local usage. Set NEXT_PUBLIC_BYPASS_AUTH="false" to re-enable auth checks.
   const bypassAuth = process.env.NEXT_PUBLIC_BYPASS_AUTH !== "false"
   const apiBase = process.env.NEXT_PUBLIC_API_URL || (typeof window !== "undefined" ? window.location.origin : "")
+  const useBackend = process.env.NEXT_PUBLIC_USE_BACKEND === "true"
   const [step, setStep] = useState<"upload" | "generate" | "results">("upload")
   const [formData, setFormData] = useState({
     logo: null as File | null,
@@ -47,11 +48,17 @@ export default function Home() {
         if (token) headers["Authorization"] = `Bearer ${token}`
       }
 
-      const response = await fetch(`/api/generate-creatives`, {
-        method: "POST",
-        body: formDataObj,
-        headers,
-      })
+      const response = useBackend
+        ? await fetch(`${apiBase}/api/generate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...headers },
+            body: JSON.stringify({ style: formData.style, quantity: formData.quantity }),
+          })
+        : await fetch(`/api/generate-creatives`, {
+            method: "POST",
+            body: formDataObj,
+            headers,
+          })
 
       clearInterval(progressInterval)
       setProgress(100)
@@ -139,7 +146,9 @@ export default function Home() {
           <div className="space-y-8">
             <div className="text-center">
               <h2 className="text-4xl font-bold text-white mb-2">Your Creatives</h2>
-              <p className="text-slate-300">{creatives.length} variations generated</p>
+              <p className="text-slate-300">
+                {creatives?.length ?? 0} variation{creatives?.length !== 1 ? 's' : ''} generated
+              </p>
             </div>
 
             <CreativesGallery creatives={creatives} />

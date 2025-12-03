@@ -4,56 +4,66 @@ An **event-driven, production-ready AI system** that automatically generates 10+
 
 ## ⚡ Quick Start (Local)
 
-There are two ways to run it locally. Option A is the fastest (uses the built‑in mock API). Option B runs the separate Express backend.
+There are two ways to run it locally. **Option A** is the fastest and uses the built‑in mock image generator. **Option B** runs the separate Express backend that talks to Stability (or your own provider).
 
-### Option A — Frontend only (mock API)
+### Option A — Frontend only (mock API, no keys needed)
 
 ```bash
 # From repo root
 cd frontend
 npm install
 
-# Create frontend/.env.local (already added by setup)
-# NEXT_PUBLIC_API_URL is not required for mock; route is internal
+# Create frontend/.env.local
+cat > .env.local << 'EOF'
+NEXT_PUBLIC_BYPASS_AUTH=true
+NEXT_PUBLIC_USE_BACKEND=false
+EOF
+
 npm run dev
 # Open http://localhost:3000
 ```
 
-Generate flow: Upload logo + product → click Generate → see 12 mock creatives → Download ZIP.
+Flow: Upload logo + product → pick style + variations → click **Generate Creatives** → see mock SVG variations → **Download ZIP** (client‑side ZIP using JSZip).
 
 API used: `POST /api/generate-creatives` (Next.js route at `frontend/app/api/generate-creatives/route.ts`).
 
-### Option B — Full stack (Express backend)
+### Option B — Full stack (Express backend with real / fallback images)
 
 ```bash
 # Backend (port 5050)
 cd backend
 npm install
+cp .env.example .env   # if not already done, then edit values
 npm run dev
 # Health: curl http://localhost:5050/api/health
 
-# Frontend
+# Frontend (new terminal)
 cd ../frontend
-npm run dev
-# Open http://localhost:3000 (frontend points to NEXT_PUBLIC_API_URL)
-```
-
-Env you may need:
-
-```env
-# frontend/.env.local
+cat > .env.local << 'EOF'
 NEXT_PUBLIC_API_URL=http://localhost:5050
 NEXT_PUBLIC_BYPASS_AUTH=true
+NEXT_PUBLIC_USE_BACKEND=true
+EOF
 
-# backend/.env (already configured in this repo)
-BACKEND_PORT=5050
-JWT_SECRET=change_me
-DATABASE_URL=postgresql://postgres:password@localhost:3232/ai_creative_studio
+npm run dev
+# Open http://localhost:3000
 ```
 
-Troubleshooting:
-- If port 5000 is busy, this repo uses 5050 for backend.
-- If you get 401 on `/api/generate`, ensure backend auth is disabled in dev or use the mock route `/api/generate-creatives`.
+Key backend envs (see `backend/.env.example` for the full list):
+
+```env
+# backend/.env
+BACKEND_PORT=5050
+JWT_SECRET=change_me
+
+# Image generation (Stability by default)
+IMAGE_GEN_API_KEY=your_stability_key_here
+IMAGE_GEN_PROVIDER=stability   # or set to "mock" to force SVG fallbacks
+```
+
+Notes:
+- If you are out of Stability credits, keep `IMAGE_GEN_PROVIDER=stability` and the backend will **auto‑fallback** to labeled SVG placeholders, or set `IMAGE_GEN_PROVIDER=mock` to always use mock images.
+- If you see 401s on `/api/generate`, make sure `NEXT_PUBLIC_BYPASS_AUTH=true` on the frontend while developing.
 
 ![Header Image](/placeholder.svg?height=400&width=1200&query=ai%20creative%20studio%20header)
 
@@ -121,16 +131,15 @@ Upload Logo + Product Image → AI Processing → 10+ Unique Creatives → Downl
         └──────────────────────┘
 \`\`\`
 
-### Tech Stack
+### Tech Stack (this repo)
 
 | Layer | Technology |
 |-------|-----------|
-| **Frontend** | Next.js 16, React 19, TypeScript, Tailwind CSS |
-| **Backend** | Next.js API Routes, Node.js |
-| **Image Gen** | Stable Diffusion / DALL-E 3 / Midjourney API |
-| **Text Gen** | OpenAI GPT-4 / Claude 3.5 Sonnet / Groq |
-| **Storage** | Vercel Blob (temporary file handling) |
-| **Orchestration** | Event-driven pipeline with error handling |
+| **Frontend** | Next.js 15, React 18, TypeScript, Tailwind CSS |
+| **Backend** | Express + TypeScript (`backend/server.ts`) |
+| **Image Gen** | Stability API (SDXL) with SVG / placeholder fallbacks |
+| **Text Gen** | Pluggable LLM service (currently stubbed with safe defaults) |
+| **Export** | Client-side ZIP via JSZip (no backend ZIP required) |
 
 ---
 
